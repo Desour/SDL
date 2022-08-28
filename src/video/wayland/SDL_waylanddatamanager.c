@@ -38,7 +38,9 @@
 /* FIXME: This is arbitrary, but we want this to be less than a frame because
  * any longer can potentially spin an infinite loop of PumpEvents (!)
  */
-#define PIPE_MS_TIMEOUT 10
+#define PIPE_MS_TIMEOUT 14
+
+extern const char *SDL_IOReady_debug;
 
 static ssize_t
 write_pipe(int fd, const void* buffer, size_t total_length, size_t *pos)
@@ -51,7 +53,9 @@ write_pipe(int fd, const void* buffer, size_t total_length, size_t *pos)
     sigset_t old_sig_set;
     struct timespec zerotime = {0};
 
+    SDL_IOReady_debug = "write_pipe";
     ready = SDL_IOReady(fd, SDL_IOR_WRITE, PIPE_MS_TIMEOUT);
+    SDL_IOReady_debug = "";
 
     sigemptyset(&sig_set);
     sigaddset(&sig_set, SIGPIPE);
@@ -63,7 +67,7 @@ write_pipe(int fd, const void* buffer, size_t total_length, size_t *pos)
 #endif
 
     if (ready == 0) {
-        bytes_written = SDL_SetError("Pipe timeout");
+        bytes_written = SDL_SetError("Pipe timeout (w)");
     } else if (ready < 0) {
         bytes_written = SDL_SetError("Pipe select error");
     } else {
@@ -97,10 +101,12 @@ read_pipe(int fd, void** buffer, size_t* total_length, SDL_bool null_terminate)
     ssize_t bytes_read = 0;
     size_t pos = 0;
 
+    SDL_IOReady_debug = "read_pipe";
     ready = SDL_IOReady(fd, SDL_IOR_READ, PIPE_MS_TIMEOUT);
+    SDL_IOReady_debug = "";
 
     if (ready == 0) {
-        bytes_read = SDL_SetError("Pipe timeout");
+        bytes_read = SDL_SetError("Pipe timeout (r)");
     } else if (ready < 0) {
         bytes_read = SDL_SetError("Pipe select error");
     } else {

@@ -32,6 +32,11 @@
 #endif
 #include <errno.h>
 
+#include <time.h>
+#include <stdio.h>
+
+extern const char *SDL_IOReady_debug;
+const char *SDL_IOReady_debug = "";
 
 int
 SDL_IOReady(int fd, int flags, int timeoutMS)
@@ -46,6 +51,10 @@ SDL_IOReady(int fd, int flags, int timeoutMS)
 #ifdef HAVE_POLL
         struct pollfd info;
 
+        struct timespec tp0;
+        struct timespec tp1;
+        double dt;
+
         info.fd = fd;
         info.events = 0;
         if (flags & SDL_IOR_READ) {
@@ -54,7 +63,18 @@ SDL_IOReady(int fd, int flags, int timeoutMS)
         if (flags & SDL_IOR_WRITE) {
             info.events |= POLLOUT;
         }
+
+        clock_gettime(CLOCK_MONOTONIC, &tp0);
+
         result = poll(&info, 1, timeoutMS);
+
+        clock_gettime(CLOCK_MONOTONIC, &tp1);
+
+        dt = (double)(tp1.tv_sec - tp0.tv_sec) + 1.0e-9 * (double)(tp1.tv_nsec - tp0.tv_nsec);
+        if (SDL_IOReady_debug[0])
+            printf("[%s] poll timeout (result=%d) after %f ms (should be %f ms)\n",
+                    SDL_IOReady_debug, result, dt * 1.0e3, (double)timeoutMS);
+
 #else
         fd_set rfdset, *rfdp = NULL;
         fd_set wfdset, *wfdp = NULL;
